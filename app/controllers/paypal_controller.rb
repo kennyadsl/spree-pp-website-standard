@@ -6,12 +6,12 @@ class PaypalController < CheckoutController
     @order = Order.find_by_number(params[:invoice]) || current_order
     # Empty session after valid payments
     session[:order_id] = nil
+    flash[:notice] = I18n.t(:order_processed_successfully)
+    flash[:commerce_tracking] = "nothing special"
     if @order
-      flash[:notice] = I18n.t(:order_processed_successfully)
-      flash[:commerce_tracking] = "nothing special"
       redirect_to order_path(@order)
     else
-      redirect_to cart_path
+      redirect_to root_path
     end
   end
 
