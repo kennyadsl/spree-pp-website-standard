@@ -7,31 +7,33 @@ class PaymentNotificationsController < ApplicationController
     PaymentNotification.create!(:params => params, 
       :order_id => @order.id,
       :status => params[:payment_status], 
-      :transaction_id => params[:txn_id])
+      :transaction_id => params[:txn_id]
+    )
     
-    # this logging stuff won't live here for long...
+    # Performs callbacks for completed payments only
+    if params[:payment_status] == "Completed"
+      Order.transaction do
+        # main part of hacks
+        order = @order
 
-    Order.transaction do
-      # main part of hacks
-      order = @order
+        #create payment for this order
+        payment = Payment.new
+        payment.amount = order.total
+        payment.payment_method = Order.paypal_payment_method
+        order.payments << payment
+        payment.started_processing
 
-      #create payment for this order
-      payment = Payment.new
-      payment.amount = order.total
-      payment.payment_method = Order.paypal_payment_method
-      order.payments << payment
-      payment.started_processing
-
-      order.payment.complete
-      logger.info("order #{order.number} (#{order.id}) -- completed payment")
-      while order.state != "complete"
-         order.next
-         logger.info("advanced state of Order #{order.number} (#{order.id}). current state #{order.state}. thread #{Thread.current.to_s}. issuing callback")
-         state_callback(:after) # that line will run all _not run before_ callbacks
+        order.payment.complete
+        logger.info("order #{order.number} (#{order.id}) -- completed payment")
+        while order.state != "complete"
+           order.next
+           logger.info("advanced state of Order #{order.number} (#{order.id}). current state #{order.state}. thread #{Thread.current.to_s}. issuing callback")
+           state_callback(:after) # that line will run all _not run before_ callbacks
+        end
+        order.update_totals
+        order.update!
+        logger.info("Order #{order.number} (#{order.id}) updated successfully, IPN complete")
       end
-      order.update_totals
-      order.update!
-      logger.info("Order #{order.number} (#{order.id}) updated successfully, IPN complete")
     end
     
     render :nothing => true
