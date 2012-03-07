@@ -1,5 +1,5 @@
-class PaypalController < CheckoutController 
-  protect_from_forgery :except => [:confirm] 
+class PaypalController < ApplicationController
+  protect_from_forgery :except => [:confirm]
   skip_before_filter :persist_gender
 
   def confirm
