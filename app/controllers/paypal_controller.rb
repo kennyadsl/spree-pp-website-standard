@@ -2,6 +2,8 @@ class PaypalController < ApplicationController
   protect_from_forgery :except => [:confirm]
   skip_before_filter :persist_gender
 
+  include Spree::CurrentOrder
+
   def confirm
     @order = Order.find_by_number(params[:invoice]) || current_order
     # Empty session after valid payments
